@@ -6,12 +6,19 @@ config = {
     "dtype": "nsr-2",
     "mean":"0.1495",
     "std":"0.0825",
+    "rename": False, # this parameter is not required, need to check
+    "root_dir": Path("/mnt/hdd2/mdsamiul/project/rice_crop_segmentation"),
+    
+    # Image In/Out Parameters
+    # -------------------------
     "channel_type": "rgb",
     "in_channels": 3,
     "num_classes": 3,
     "height": 400,
     "width": 400,
-    "rename": False,
+    
+    # Training Parameters
+    # -------------------------
     "model_name": "planet-2",
     "batch_size": 1,
     "epochs": 3000,
@@ -20,26 +27,34 @@ config = {
     "augment": False,
     "transfer_lr": False,
     "gpu": "0",
+    
+    # Class Balance Parameters
+    # -------------------------
     "weights": False,
     "balance_weights": [2.2, 7.8, 0],
-    "root_dir": Path("/mnt/hdd2/mdsamiul/project/rice_crop_segmentation"),
-    "train_size": 0.8,
     "patchify": True,
     "patch_class_balance": True,
+    "train_size": 0.8,
     "patch_size": 2048,
     "stride": 1024,
+    
+    # Log Parameters
+    # -------------------------
     "csv": True,
     "val_pred_plot": True,
     "lr": True,
     "tensorboard": True,
     "early_stop": False,
     "checkpoint": True,
-    "patience": 300,
+    "patience": 300, # required for early_stopping, if accuracy does not change for "patience" epochs, model will stop automatically
+    
+    # Evaluation Parameters
+    # -------------------------
     "load_model_name": 'planet-2_ex_2024-04-29_e_3000_p_2048_s_1024_nsr-1_ep_3000not.hdf5',
-    "load_model_dir": None,
+    "load_model_dir": None, #  If None, then by befault root_dir/model/model_name/load_model_name
     "evaluation": False,
-    "video_path": None,
-    "index": -1,
+    "video_path": None,  # If None, then by default root_dir/data/video_frame
+    "index": -1, # this parameter is not required, need to check
 }
 
 # Update mean and std based on dtype

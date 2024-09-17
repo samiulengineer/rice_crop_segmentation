@@ -40,33 +40,6 @@ Keep the above mention dataset in the data folder that give you following struct
 ```
 
 
-## Input Data Organization Guidelines
-
-To maintain proper organization of input features, it is recommended to follow these guidelines:
-
-### Separate Folders for Input Features and Masks
-
-Ensure that input features and their respective masks are stored in separate folders. Use consistent naming conventions across these folders to facilitate sorting and alignment.
-
-#### Example Naming Convention:
-
-For instance, if the input feature is named `rice_01.png`, the corresponding mask should also be named `rice_01.png`.
-
-Keep the above mention dataset in the data folder that give you following structure. Please do not change the directory name `image` and `gt_image`.
-
-```
---data
-    image
-        rice_01.png
-        rice_02.png
-            ..
-    gt_image
-        rice_01.png
-        rice_02.png
-            ..
-```
-
-
 
 ## **Model**
 
@@ -106,7 +79,9 @@ python train.py --root_dir /home/projects/imseg_sar/ \
     --model_name unet \
     --epochs 10 \
     --batch_size 3 \
-    --experiment phr_cb 
+    --experiment unet_test \
+    --gpu 0 \
+    --dtype nsr-3
 ```
 
 * **Patchify Half Resolution with Class Balance Weight (PHR-CBW)**:

@@ -1,5 +1,5 @@
 import argparse
-from config import *
+from config import * 
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--root_dir", type=str)
