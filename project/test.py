@@ -26,13 +26,13 @@ from utils import create_paths, test_eval_show_predictions, frame_to_video
 
 
 
-print(f"root_dir:{config['root_dir']} model_name: {config['model_name']} load_model_name:{config['load_model_name']} index:{config['index']} experiment:{config['experiment']} gpu:{config['gpu']} evaluation:{config['evaluation']} video_path:{config['video_path']}")
+# print(f"root_dir:{root_dir} model_name: {model_name} load_model_name:{load_model_name} index:{index} experiment:{experiment} gpu:{gpu} evaluation:{evaluation} video_path:{video_path}")
 
 # Training Start Time
 t0 = time.time()
 
 # Set up test configuration
-if config['evaluation']:
+if evaluation:
     create_paths(eval=True)
     print("evaluation")
 else:
@@ -41,12 +41,12 @@ else:
 
 # setup GPU
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = config['gpu']
+os.environ["CUDA_VISIBLE_DEVICES"] = gpu
 os.environ["TF_FORCE_GPU_ALLOW_GROWTH"] = "true"
 
 # Load Model
-print("Loading model {} from {}".format(config['load_model_name'], config['load_model_dir']))
-model = load_model((config['load_model_dir'] / config['load_model_name']), compile=False)
+print("Loading model {} from {}".format(load_model_name, load_model_dir))
+model = load_model((load_model_dir / load_model_name), compile=False)
 
 # Dataset
 test_dataset = get_test_dataloader()
@@ -60,20 +60,20 @@ print("Call test_eval_show_predictions")
 print("--------------------------------------")
 
 # Test Score
-if not config['evaluation']:
+if not evaluation:
     metrics = list(get_metrics().values())
-    adam = keras.optimizers.Adam(learning_rate=config['learning_rate'])
+    adam = keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer=adam, loss=focal_loss(), metrics=metrics)
     model.evaluate(test_dataset)
 
 # Frame to Video
-if config['video_path'] == True:
-    fname = config['dataset_dir'] + "prediction.avi"
+if video_path == True:
+    fname = dataset_dir + "prediction.avi"
     frame_to_video(fname, fps=30)
 
 # Training time Calculation (End)
 print("training time sec: {}".format((time.time() - t0)))
 
 print("--------------------------------------")
-print(f"saving prediction: {config['prediction_val_dir']}")
+print(f"saving prediction: {prediction_val_dir}")
 print("--------------------------------------")

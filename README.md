@@ -67,24 +67,25 @@ pip install -r requirements.txt
 In this experiment we take a threshold value (19%) of water class and remove the patch images for each chip that are less than threshold value. This specific experiment is taken from `https://github.com/samiulengineer/imseg_sar_csml`
 
 ```
-python train.py --root_dir YOUR_ROOT_DIR \
-    --model_name unet \
-    --epochs 10 \
-    --batch_size 3 \
-    --experiment phr_cb 
-```
-##### Example:
-```
-python train.py --root_dir /home/projects/imseg_sar/ \
-    --model_name unet \
-    --epochs 10 \
-    --batch_size 3 \
-    --experiment unet_test \
-    --gpu 0 \
-    --dtype nsr-3
+python train.py
 ```
 
-* **Patchify Half Resolution with Class Balance Weight (PHR-CBW)**:
+```
+Check these variables from config.py carefully before starting to train the model
+
+1. root_dir <root dir, where all files stored>
+2. model_name <check accurate model name form model.py get_model()>
+3. epochs <epochs>
+4. batch_size <batch_size>
+5. gpu <put gpu number, if you have more than 1 gpu, otherwise 0>
+6. dir_name <data folder you want to get>
+7. patchify <must be True>
+8. patch_class_balance <must be true>
+9. patch_size <an int value which will be the model input shape and slicing the given input shape>
+```
+
+
+* ### **Patchify Half Resolution with Class Balance Weight (PHR-CBW)**:
 
 ### Resolving Data Imbalance Issues
 
@@ -95,20 +96,23 @@ If encountering a scenario where there are only two classes, with the first clas
 However, in cases where there are three classes, and one of them is considered a boundary that should be disregarded, the weight of the corresponding class must be set to 0. For instance, in the command line, this would be denoted as `balance_weights = [4,6,0]` in the config.py file. This specific experiment is taken from `https://github.com/samiulengineer/imseg_sar_csml`
 
 ```
-python train.py --root_dir YOUR_ROOT_DIR \
-    --model_name unet \
-    --epochs 10 \
-    --batch_size 3 \
-    --experiment phr_cb 
+python train.py
 ```
-##### Example:
+
 ```
-python train.py --root_dir /mnt/hdd2/mdsamiul/project/rice_crop_segmentation \
-    --model_name planet-2 \
-    --epochs 5 \
-    --batch_size 1 \
-    --gpu 0 \
-    --dtype nsr-1
+Check these variables from config.py carefully before starting to train the model
+
+1. root_dir <root dir, where all files stored>
+2. model_name <check accurate model name form model.py get_model()>
+3. epochs <epochs>
+4. batch_size <batch_size>
+5. gpu <put gpu number, if you have more than 1 gpu, otherwise 0>
+6. dir_name <data folder you want to get>
+7. patchify <must be True>
+8. patch_class_balance <must be true>
+9. patch_size <an int value which will be the model input shape and slicing the given input shape>
+10. weights <if it is true, model will take consideration of balance_weights>
+11. balance_weights <need to check percentage of different classes, then use it as a list>
 ```
 
 ## Transfer Learning, Fine-tuning, and Training from Scratch
@@ -149,16 +153,14 @@ In this project, the behavior of the model training process is determined by cer
 python test.py \
     --dataset_dir YOUR_ROOT_DIR/data/ \
     --model_name unet \
-    --load_model_name my_model.hdf5 \
-    --experiment phr 
+    --load_model_name my_model.hdf5
 ```
 ##### Example:
 ```
 python test.py \
     --dataset_dir /home/projects/imseg_sar/data/ \
     --model_name unet \
-    --load_model_name my_model.hdf5 \
-    --experiment phr 
+    --load_model_name my_model.hdf5
 ```
 
 ### **Evaluation from Image**
@@ -172,9 +174,8 @@ python project/test.py \
     --dataset_dir YOUR_IMAGE_DIR/ \
     --model_name fapnet \
     --load_model_name MODEL_CHECKPOINT_NAME \
-    --experiment test \
     --gpu YOUR_GPU_NUMBER \
-    --evaluation True \
+    --evaluation True
 ```
 ##### Example:
 ```
@@ -182,9 +183,8 @@ python project/test.py \
     --dataset_dir /home/projects/imseg_sar/eavl_data/ \
     --model_name fapnet \
     --load_model_name my_model.hdf5 \
-    --experiment road_seg \
     --gpu 0 \
-    --evaluation True \
+    --evaluation True
 ```
 ##### Example:
 ```
@@ -192,9 +192,8 @@ python project/test.py \
     --dataset_dir /home/projects/imseg_sar/eavl_data/ \
     --model_name fapnet \
     --load_model_name my_model.hdf5 \
-    --experiment road_seg \
     --gpu 0 \
-    --evaluation True \
+    --evaluation True
 ```
 
 

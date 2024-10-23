@@ -56,14 +56,8 @@ def read_img(directory, in_channels=None, label=False, patch_idx=None, height=25
         
         mask[mask == 2.0] = 0
         mask[mask == 1.0] = 1
-        # np.swapaxes(mask,0,2)
-        # mask[mask == 255] = 1
-        # mask[mask == 170] = 2
-        # mask[mask == 85] = 2
-        # mask = mask[... , np.newaxis]
+
         mask = mask.astype("int32")
-        # print(".......mask...............")
-        # print(mask.shape)
     
         if patch_idx:
             # extract patch from original mask
@@ -78,7 +72,7 @@ def read_img(directory, in_channels=None, label=False, patch_idx=None, height=25
         X= np.swapaxes(X,0,2)
         for i in range(3):
             X[i,:,:]= pct_clip(X[i,:,:])
-        X = (X - config['mean']) / config['std']
+        X = (X - mean) / std
         if patch_idx:
             # extract patch from original features
             return X[patch_idx[0]:patch_idx[1], patch_idx[2]:patch_idx[3], :]
@@ -98,7 +92,7 @@ def data_split(images, masks):
     """
     # splitting training data
     x_train, x_rem, y_train, y_rem = train_test_split(
-        images, masks, train_size=config['train_size'], random_state=42
+        images, masks, train_size=train_size, random_state=42
     )
     # splitting test and validation data
     x_valid, x_test, y_valid, y_test = train_test_split(
@@ -118,16 +112,16 @@ def save_csv(dictionary, name):
         save file
     """
     # check for target directory
-    if not os.path.exists(config['dataset_dir'] / "data/csv"):
+    if not os.path.exists(dataset_dir / "data/csv"):
         try:
-            os.makedirs(config['dataset_dir'] / "data/csv")  # making target directory
+            os.makedirs(dataset_dir / "data/csv")  # making target directory
         except Exception as e:
             print(e)
             raise
     # converting dictionary to pandas dataframe
     df = pd.DataFrame.from_dict(dictionary)
     # from dataframe to csv
-    df.to_csv((config['dataset_dir'] / "data/csv" / name), index=False, header=True)
+    df.to_csv((dataset_dir / "data/csv" / name), index=False, header=True)
 
 
 def video_to_frame():
@@ -139,12 +133,12 @@ def video_to_frame():
     Return:
         frames
     """
-    vidcap = cv2.VideoCapture(config['video_path'])
+    vidcap = cv2.VideoCapture(video_path)
     success, image = vidcap.read()
     count = 0
     while success:
         cv2.imwrite(
-            str(config['root_dir'] / "data/video_frame" / "frame_%06d.jpg" % count), image
+            str(root_dir / "data/video_frame" / "frame_%06d.jpg" % count), image
         )  # save frame as JPEG file
         success, image = vidcap.read()
         count += 1
@@ -162,8 +156,8 @@ def data_csv_gen():
     images = []
     masks = []
 
-    image_path = config['dataset_dir'] / "input"
-    mask_path = config['dataset_dir'] / "groundtruth"
+    image_path = dataset_dir / "input"
+    mask_path = dataset_dir / "groundtruth"
     image_names = os.listdir(image_path)
     image_names = sorted(image_names)
     mask_names = os.listdir(mask_path)
@@ -196,7 +190,7 @@ def eval_csv_gen():
     Return:
         csv file
     """
-    data_path = config['dataset_dir']
+    data_path = dataset_dir
     images = []
 
     image_path = data_path
@@ -236,7 +230,7 @@ def class_percentage_check(label):
     }
 
 
-def save_patch_idx(path, patch_size=config['patch_size'], stride=config['stride'], test=None, patch_class_balance=None):
+def save_patch_idx(path, patch_size=patch_size, stride=stride, test=None, patch_class_balance=None):
     """
     Summary:
         finding patch image indices for single image based on class percentage. work like convolutional layer
@@ -289,7 +283,7 @@ def save_patch_idx(path, patch_size=config['patch_size'], stride=config['stride'
 
                     # store patch image indices based on class percentage
                     else:
-                        if percen["one_class"] > 19.0:
+                        if percen["one_class"] > 19:
                             patch_idx.append([s_row, e_row, start, end])
                             
                 if end == img.shape[1]:
@@ -343,10 +337,10 @@ def patch_images(data, name):
         # fetching patch indices
         patches = save_patch_idx(
             data.masks.values[i],
-            patch_size=config['patch_size'],
-            stride=config['stride'],
+            patch_size=patch_size,
+            stride=stride,
             test=name.split("_")[0],
-            patch_class_balance=config['patch_class_balance'],
+            patch_class_balance=patch_class_balance,
         )
 
         # generate data point for each patch image
@@ -358,7 +352,7 @@ def patch_images(data, name):
     temp = {"feature_ids": img_dirs, "masks": masks_dirs, "patch_idx": all_patch}
 
     # save data to json 
-    write_json((config['dataset_dir'] / "data/json/"), (name + str(config['patch_size']) + "_" + str(config['stride']) + ".json"), temp)
+    write_json((dataset_dir / "data/json/"), (name + str(patch_size) + "_" + str(stride) + ".json"), temp)
 
 
 # Data Augment class
@@ -631,37 +625,38 @@ def get_train_val_dataloader():
     Return:
         train and valid dataloader
     """
-    global train_dir, weights
+    global train_dir, valid_dir, weights
 
     # creating csv files for train, test and validation
-    if not (os.path.exists(config['train_dir'])):
+    if not (os.path.exists(train_dir)):
         data_csv_gen()
+        
     # creating json files for train, test and validation
-    if not (os.path.exists(config['p_train_dir'])) and config['patchify']:
+    if not (os.path.exists(p_train_dir)) and patchify:
         print("Saving patchify indices for train and test.....")
 
         # for training
-        data = pd.read_csv(config['train_dir'])
+        data = pd.read_csv(train_dir)
 
-        if config['patch_class_balance']:
+        if patch_class_balance:
             patch_images(data, "train_patch_phr_cb_")
         else:
             patch_images(data, "train_patch_phr_")
 
         # for validation
-        data = pd.read_csv(config['valid_dir'])
+        data = pd.read_csv(valid_dir)
 
-        if config['patch_class_balance']:
+        if patch_class_balance:
             patch_images(data, "valid_patch_phr_cb_")
         else:
             patch_images(data, "valid_patch_phr_")
 
     # initializing train, test and validation for patch images
-    if config['patchify']:
-        print("Loading Patchified features and masks directories.....")
-        with config['p_train_dir'].open() as j:
+    if patchify:
+        print("(Patchify = True) Loading Patchified features and masks directories.....")
+        with p_train_dir.open() as j:
             train_dir = json.loads(j.read())
-        with config['p_valid_dir'].open() as j:
+        with p_valid_dir.open() as j:
             valid_dir = json.loads(j.read())
 
         # selecting which dataset to train and validate
@@ -672,9 +667,9 @@ def get_train_val_dataloader():
         train_idx = train_dir["patch_idx"]
         valid_idx = valid_dir["patch_idx"]
     else:
-        print("Loading features and masks directories.....")
-        train_dir = pd.read_csv(config['train_dir'])
-        valid_dir = pd.read_csv(config['valid_dir'])
+        print("(Patchify = False) Loading features and masks directories.....")
+        train_dir = pd.read_csv(train_dir)
+        valid_dir = pd.read_csv(valid_dir)
 
         # selecting which dataset to train and validate
         train_features = train_dir.feature_ids.values
@@ -690,16 +685,16 @@ def get_train_val_dataloader():
     print("---------------------------------------------------")
     
     # create Augment object if augment is true and batch_size is greater than 1
-    if config['augment'] and config['batch_size'] > 1:
-        augment_obj = Augment(config['batch_size'], config['in_channels'])
+    if augment and batch_size > 1:
+        augment_obj = Augment(batch_size, in_channels)
         # new batch size after augment data for train
-        n_batch_size = config['batch_size'] - augment_obj.aug_img_batch
+        n_batch_size = batch_size - augment_obj.aug_img_batch
     else:
-        n_batch_size = config['batch_size']
+        n_batch_size = batch_size
         augment_obj = None
 
-    if config['weights']:
-        weights = tf.constant(config['balance_weights'])
+    if weights:
+        weights = tf.constant(balance_weights)
     else:
         weights = None
 
@@ -707,11 +702,11 @@ def get_train_val_dataloader():
     train_dataset = MyDataset(
         train_features,
         train_masks,
-        in_channels=config['in_channels'],
-        patchify=config['patchify'],
+        in_channels=in_channels,
+        patchify=patchify,
         batch_size=n_batch_size,
         transform_fn=transform_data,
-        num_class=config['num_classes'],
+        num_class=num_classes,
         augment=augment_obj,
         weights=weights,
         patch_idx=train_idx,
@@ -720,11 +715,11 @@ def get_train_val_dataloader():
     val_dataset = MyDataset(
         valid_features,
         valid_masks,
-        in_channels=config['in_channels'],
-        patchify=config['patchify'],
-        batch_size=config['batch_size'],
+        in_channels=in_channels,
+        patchify=patchify,
+        batch_size=batch_size,
         transform_fn=transform_data,
-        num_class=config['num_classes'],
+        num_class=num_classes,
         patch_idx=valid_idx,
     )
 
@@ -742,35 +737,35 @@ def get_test_dataloader():
     """
     global eval_dir, p_eval_dir, test_dir, p_test_dir
     
-    if config['evaluation']:
-        var_list = [config['eval_dir'], config['p_eval_dir']]
+    if evaluation:
+        var_list = [eval_dir, p_eval_dir]
         patch_name = "eval_patch_phr_cb_"
     else:
-        var_list = [config['test_dir'], config['p_test_dir']]
+        var_list = [test_dir, p_test_dir]
         patch_name = "test_patch_phr_cb_"
 
     if not (os.path.exists(var_list[0])):
-        if config['evaluation']:
+        if evaluation:
             eval_csv_gen()
         else:
             data_csv_gen()
 
-    if not (os.path.exists(var_list[1])) and config['patchify']:
+    if not (os.path.exists(var_list[1])) and patchify:
         print(".....................................")
         print("Saving patchify indices for test.....")
         print(".....................................")
         data = pd.read_csv(var_list[0])
         patch_images(data, patch_name)
 
-    if config['patchify']:
-        print("Loading Patchified features and masks directories.....")
+    if patchify:
+        print("(Patchify = True) Loading Patchified features and masks directories.....")
         with var_list[1].open() as j:
             test_dir = json.loads(j.read())
         test_features = test_dir["feature_ids"]
         test_masks = test_dir["masks"]
         test_idx = test_dir["patch_idx"]
     else:
-        print("Loading features and masks directories.....")
+        print("(Patchify = False) Loading features and masks directories.....")
         test_dir = pd.read_csv(var_list[0])
         test_features = test_dir.feature_ids.values
         test_masks = test_dir.masks.values
@@ -783,11 +778,11 @@ def get_test_dataloader():
     test_dataset = MyDataset(
         test_features,
         test_masks,
-        in_channels=config['in_channels'],
-        patchify=config['patchify'],
-        batch_size=config['batch_size'],
+        in_channels=in_channels,
+        patchify=patchify,
+        batch_size=batch_size,
         transform_fn=transform_data,
-        num_class=config['num_classes'],
+        num_class=num_classes,
         patch_idx=test_idx,
     )
 

@@ -60,7 +60,7 @@ def get_metrics():
         metrics directories
     """
 
-    m = MyMeanIOU(config['num_classes'])
+    m = MyMeanIOU(num_classes)
     return {
         'MyMeanIOU': m,
         # 'f1-score': tfa.metrics.F1Score(num_classes=2, average="micro", threshold=0.9),

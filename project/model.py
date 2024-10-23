@@ -1,7 +1,6 @@
 import math
 from config import *
 import tensorflow as tf
-# from logging import config
 from einops import rearrange
 from tensorflow import keras
 import segmentation_models as sm
@@ -12,12 +11,6 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.layers import LeakyReLU, add, Conv2D, PReLU, ReLU, Concatenate, Activation, MaxPool2D, Input, Conv2D, MaxPooling2D, UpSampling2D, concatenate, Conv2DTranspose, BatchNormalization, Dropout, Lambda
 from tensorflow.keras.utils import plot_model
 
-
-height = config['height']
-width = config['width']
-in_channels = config['in_channels']
-num_classes = config['num_classes']
-model_name = config['model_name'] 
 
 # UNET
 # ----------------------------------------------------------------------------------------------
@@ -1062,102 +1055,11 @@ def get_model_transfer_lr(model, num_classes):
 
 
 
-
-
-
-
-
-
-
-
-# PLANET Verion-1
-# ----------------------------------------------------------------------------------------------
-def planet_v1():
-    no_layer = 0
-    inp_size = height
-    start_filter = 16
-    while inp_size>=8:
-        no_layer += 1
-        inp_size = inp_size / 2
-    print(no_layer)
-    encoder = {}
-    inputs = Input((height,width,in_channels))
-    for i in range(no_layer):
-        if i == 0:
-            encoder["enc_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "enc_{}_0".format(i),activation='relu', kernel_initializer='he_normal', padding='same')(inputs)
-        else:
-            encoder["enc_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "enc_{}_0".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(encoder["mp_{}".format(i-1)])
-        encoder["enc_{}_1".format(i)] = Conv2D(start_filter, (3, 3), name = "enc_{}_1".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(Dropout(0.2)(encoder["enc_{}_0".format(i)]))
-        encoder["mp_{}".format(i)] = MaxPooling2D((2,2), name = "mp_{}".format(i))(encoder["enc_{}_1".format(i)])
-        start_filter *= 2
-    
-    mid_1 = Conv2D(start_filter, (3, 3), name = "mid_1", activation='relu', kernel_initializer='he_normal', padding='same')(encoder["mp_{}".format(no_layer-1)])
-    mid_drop = Dropout(0.3)(mid_1)
-    mid_2 = Conv2D(start_filter, (3, 3), name = "mid_2", activation='relu', kernel_initializer='he_normal', padding='same')(mid_drop)
-
-    start_filter = start_filter / 2
-    half_dec = {}
-    for i in range(math.floor(no_layer/2)):
-        print(i)
-        if i == 0:
-            half_dec["h_dec_T_{}".format(i)] = Conv2DTranspose(start_filter, (2, 2), name = "h_dec_T_{}".format(i), strides=(2, 2), padding='same')(mid_2)
-        else:
-            half_dec["h_dec_T_{}".format(i)] = Conv2DTranspose(start_filter, (2, 2), name = "h_dec_T_{}".format(i), strides=(2, 2), padding='same')(half_dec["h_dec_{}_1".format(i-1)])
-        half_dec["h_cc_{}".format(i)] = concatenate([half_dec["h_dec_T_{}".format(i)], encoder["enc_{}_1".format(no_layer-i-1)]], axis=3)
-        half_dec["h_dec_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "h_dec_{}_0".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(half_dec["h_cc_{}".format(i)])
-        half_dec["h_dec_{}_1".format(i)] = Conv2D(start_filter, (3, 3), name = "h_dec_{}_1".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(Dropout(0.2)(half_dec["h_dec_{}_0".format(i)]))
-        start_filter = start_filter / 2
-    half_dec["h_dec_T_{}".format(math.floor(no_layer/2))] = Conv2DTranspose(start_filter, (2, 2), name = "h_dec_T_{}".format(math.floor(no_layer/2)), strides=(2, 2), padding='same')(half_dec["h_dec_{}_1".format(math.floor(no_layer/2)-1)])
-
-
-    p_mid_1 = Conv2D(start_filter, (3, 3), name = "p_mid_1", activation='relu', kernel_initializer='he_normal', padding='same')(half_dec["h_dec_T_{}".format(math.floor(no_layer/2))])
-    p_mid_drop = Dropout(0.3)(p_mid_1)
-    p_mid_2 = Conv2D(start_filter, (3, 3), name = "p_mid_2", activation='relu', kernel_initializer='he_normal', padding='same')(p_mid_drop)
-    mid_pool = MaxPooling2D((2,2), name = "mid_mp")(p_mid_2)
-
-    half_enc = {}
-    start_filter *= 2
-    for i in range(math.floor(no_layer/2)):
-        if i == 0:
-            half_enc["h_enc_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "h_enc_{}_0".format(i),activation='relu', kernel_initializer='he_normal', padding='same')(mid_pool)
-        else:
-            half_enc["h_enc_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "h_enc_{}_0".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(half_enc["h_mp_{}".format(i-1)])
-        half_enc["h_enc_{}_1".format(i)] = Conv2D(start_filter, (3, 3), name = "h_enc_{}_1".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(Dropout(0.2)(half_enc["h_enc_{}_0".format(i)]))
-        half_enc["h_mp_{}".format(i)] = MaxPooling2D((2,2), name = "h_mp_{}".format(i))(half_enc["h_enc_{}_1".format(i)])
-        start_filter *= 2
-    
-
-    l_mid_1 = Conv2D(start_filter, (3, 3), name = "l_mid_1", activation='relu', kernel_initializer='he_normal', padding='same')(half_enc["h_mp_{}".format(math.floor(no_layer/2)-1)])
-    l_mid_drop = Dropout(0.3)(l_mid_1)
-    l_mid_2 = Conv2D(start_filter, (3, 3), name = "l_mid_2", activation='relu', kernel_initializer='he_normal', padding='same')(l_mid_drop)
-
-
-    
-    decoder = {}
-    for i in range(no_layer):
-        if i == 0:
-            decoder["dec_T_{}".format(i)] = Conv2DTranspose(start_filter, (2, 2), name = "dec_T_{}".format(i), strides=(2, 2), padding='same')(l_mid_2)
-        else:
-            decoder["dec_T_{}".format(i)] = Conv2DTranspose(start_filter, (2, 2), name = "dec_T_{}".format(i), strides=(2, 2), padding='same')(decoder["dec_{}_1".format(i-1)])
-        
-        if i < math.floor(no_layer/2):
-            decoder["cc_{}".format(i)] = concatenate([decoder["dec_T_{}".format(i)], half_enc["h_enc_{}_1".format(math.floor(no_layer/2)-i-1)]], axis=3)
-        else:
-            decoder["cc_{}".format(i)] = concatenate([decoder["dec_T_{}".format(i)], encoder["enc_{}_1".format(no_layer-i-1)]], axis=3)
-        decoder["dec_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "dec_{}_0".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(decoder["cc_{}".format(i)])
-        decoder["dec_{}_1".format(i)] = Conv2D(start_filter, (3, 3), name = "dec_{}_1".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(Dropout(0.2)(decoder["dec_{}_0".format(i)]))
-        start_filter = start_filter / 2
-    
-    outputs = Conv2D(num_classes, (1, 1), activation='softmax', dtype='float32')(decoder["dec_{}_1".format(no_layer-1)])
-    model = Model(inputs=[inputs], outputs=[outputs])
-    
-    return model
-
-# PLANET Verion-2
+# PLANET
 # ----------------------------------------------------------------------------------------------
 from tensorflow.keras.layers import ZeroPadding2D
 
-def planet_v2():
+def planet():
     """
         Summary:
             Create dynamic MNET model object based on input shape
@@ -1169,7 +1071,7 @@ def planet_v2():
     no_layer = 0
     inp_size = height
     start_filter = 4
-    while inp_size >= 8:
+    while inp_size > 8:
         no_layer += 1
         inp_size = inp_size / 2
     
@@ -1219,65 +1121,6 @@ def planet_v2():
     return model
 
 
-
-def planet_v3():
-    """
-        Summary:
-            Create dynamic MNET model object based on input shape
-        Arguments: 
-            Model configuration from config.yaml
-        Return:
-            Keras.model object
-    """
-    no_layer = 0
-    inp_size = config.patch_size
-    start_filter = 4
-    while inp_size>=8:
-        no_layer += 1
-        inp_size = inp_size / 2
-    
-    # building model encoder
-    encoder = {}
-    print(".....................")
-    print(config.patch_size,config.patch_size,in_channels)
-    inputs = Input((config.patch_size,config.patch_size,in_channels))
-    for i in range(no_layer):
-        if i == 0:
-            encoder["enc_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "enc_{}_0".format(i),activation='relu', kernel_initializer='he_normal', padding='same')(inputs)
-        else:
-            encoder["enc_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "enc_{}_0".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(encoder["mp_{}".format(i-1)])
-        start_filter *= 2
-        encoder["enc_{}_1".format(i)] = Conv2D(start_filter, (3, 3), name = "enc_{}_1".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(encoder["enc_{}_0".format(i)])
-        encoder["mp_{}".format(i)] = MaxPooling2D((2,2), name = "mp_{}".format(i))(encoder["enc_{}_1".format(i)])
-    
-    # building model middle layer
-    mid_1 = Conv2D(start_filter, (3, 3), name = "mid_1", activation='relu', kernel_initializer='he_normal', padding='same')(encoder["mp_{}".format(no_layer-1)])
-    start_filter *= 2
-    mid_drop = Dropout(0.3)(mid_1)
-    mid_2 = Conv2D(start_filter, (3, 3), name = "mid_2", activation='relu', kernel_initializer='he_normal', padding='same')(mid_drop)
-    
-    
-    # building model decoder
-    start_filter = start_filter / 2
-    decoder = {}
-    for i in range(no_layer):
-        if i == 0:
-            decoder["dec_T_{}".format(i)] = Conv2DTranspose(start_filter, (2, 2), name = "dec_T_{}".format(i), strides=(2, 2), padding='same')(mid_2)
-        else:
-            decoder["dec_T_{}".format(i)] = Conv2DTranspose(start_filter, (2, 2), name = "dec_T_{}".format(i), strides=(2, 2), padding='same')(decoder["dec_{}_1".format(i-1)])
-        decoder["cc_{}".format(i)] = concatenate([decoder["dec_T_{}".format(i)], encoder["enc_{}_1".format(no_layer-i-1)]], axis=3)
-        start_filter = start_filter / 2
-        decoder["dec_{}_0".format(i)] = Conv2D(start_filter, (3, 3), name = "dec_{}_0".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(decoder["cc_{}".format(i)])
-        decoder["dec_{}_1".format(i)] = Conv2D(start_filter, (3, 3), name = "dec_{}_1".format(i), activation='relu', kernel_initializer='he_normal', padding='same')(decoder["dec_{}_0".format(i)])
-        
-    
-    # building output layer
-    outputs = Conv2D(num_classes, (1, 1), activation='softmax', dtype='float32')(decoder["dec_{}_1".format(no_layer-1)])
-    model = Model(inputs=[inputs], outputs=[outputs])
-    
-    return model
-
-
 # Get model
 # ----------------------------------------------------------------------------------------------
 
@@ -1310,9 +1153,7 @@ def get_model():
               'kuc_swinnet':kuc_swinnet,
               'kuc_u2net':kuc_u2net,
               'kuc_attunet':kuc_attunet,
-              "planet-1" : planet_v1,
-              "planet-2" : planet_v2,
-              "planet-3" : planet_v3
+              "planet" : planet
               }
     # return models[[model_name]](config) 
     return models[model_name]()
@@ -1320,18 +1161,16 @@ def get_model():
 
 
 if __name__ == '__main__':
+    
     import os
-        # setup gpu
-    # ----------------------------------------------------------------------------------------------
+    
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
-    planet = planet_v2()
+    
+    planet = planet()
     planet.summary()
-    plot_model(planet, to_file='planet-v2.png', show_shapes=True, show_layer_names=True)
-    # new_model = get_model()
-    # print(type(new_model))
-    print("...................")
-    fapnet = fapnet()
-    fapnet.summary()
-    plot_model(fapnet, to_file='fapnet-v2.png', show_shapes=True, show_layer_names=True)
+    
+    print(height)
+    
+    # plot_model(planet, to_file='planet-v2.png', show_shapes=True, show_layer_names=True) # plot model architecture
