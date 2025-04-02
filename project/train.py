@@ -6,9 +6,8 @@ import numpy as np
 from config import *
 import tensorflow as tf
 from metrics import get_metrics
-import tensorflow_addons as tfa
-from dataset import get_train_val_dataloader
-from tensorflow.keras.models import load_model
+from dataset import data_train_val_test_dataloader
+from keras.models import load_model
 from model import get_model, get_model_transfer_lr
 from utils import SelectCallbacks, create_paths
 
@@ -37,7 +36,8 @@ print("dataset_dir = {}".format(str(dataset_dir)))
 print("--------------------------------------------------------\n")
 
 # Dataset
-train_dataset, val_dataset = get_train_val_dataloader()
+train_dataset= data_train_val_test_dataloader("train")
+val_dataset= data_train_val_test_dataloader("val")
 
 # Metrics
 metrics = list(get_metrics().values())
@@ -46,7 +46,7 @@ custom_obj = get_metrics()
 # Optimizer
 learning_rate = learning_rate
 weight_decay = 0.0001
-adam = tfa.optimizers.AdamW(
+adam = tf.keras.optimizers.Adam(
     learning_rate=learning_rate, weight_decay=weight_decay)
 
 # Loss Function
@@ -76,6 +76,7 @@ else:
 
 # Callbacks
 loggers = SelectCallbacks(val_dataset, model)
+
 model.summary()
 
 # Check dataset shape

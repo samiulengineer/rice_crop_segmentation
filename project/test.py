@@ -1,5 +1,5 @@
 import argparse
-from config import config, update_config
+from config import *
 
 # Parsing variable
 parser = argparse.ArgumentParser()
@@ -13,15 +13,12 @@ parser.add_argument("--evaluation", action='store_true')
 parser.add_argument("--video_path", type=str)
 args = parser.parse_args()
 
-# Update config with parsed arguments
-update_config(args)
-
 import os
 import time
 from loss import *
 from metrics import *
 from tensorflow.keras.models import load_model
-from dataset import get_test_dataloader
+from dataset import data_train_val_test_dataloader
 from utils import create_paths, test_eval_show_predictions, frame_to_video
 
 
@@ -49,7 +46,7 @@ print("Loading model {} from {}".format(load_model_name, load_model_dir))
 model = load_model((load_model_dir / load_model_name), compile=False)
 
 # Dataset
-test_dataset = get_test_dataloader()
+test_dataset = data_train_val_test_dataloader("test")
 
 # Prediction Plot
 print("--------------------------------------")
@@ -60,11 +57,11 @@ print("Call test_eval_show_predictions")
 print("--------------------------------------")
 
 # Test Score
-if not evaluation:
+"""if not evaluation:
     metrics = list(get_metrics().values())
     adam = keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer=adam, loss=focal_loss(), metrics=metrics)
-    model.evaluate(test_dataset)
+    model.evaluate(test_dataset)"""
 
 # Frame to Video
 if video_path == True:

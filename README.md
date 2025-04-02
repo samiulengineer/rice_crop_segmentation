@@ -126,18 +126,12 @@ In this project, the behavior of the model training process is determined by cer
 ### **Transfer Learning**
 
 - If `transfer_lr` variable is set to `True` and a `load_model_name` is provided in `config.py`, the model will undergo transfer learning.
-- If `transfer_lr` variable is set to `True` and a `load_model_name` is provided in `config.py`, the model will undergo transfer learning.
+
 
 ### **Fine Tuning**
 
 - If `transfer_lr` is set to `False` but a `load_model_name` is provided in `config.py`, the model will undergo fine-tuning.
 
-### **Training from Scratch**
-
-- If `transfer_lr` is set to `False` and no `load_model_name` is provided in `config.py`, the model will be trained from scratch.
-
-
-- If `transfer_lr` is set to `False` but a `load_model_name` is provided in `config.py`, the model will undergo fine-tuning.
 
 ### **Training from Scratch**
 
@@ -155,13 +149,7 @@ python test.py \
     --model_name unet \
     --load_model_name my_model.hdf5
 ```
-##### Example:
-```
-python test.py \
-    --dataset_dir /home/projects/imseg_sar/data/ \
-    --model_name unet \
-    --load_model_name my_model.hdf5
-```
+
 
 ### **Evaluation from Image**
 

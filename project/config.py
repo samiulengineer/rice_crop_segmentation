@@ -5,27 +5,35 @@ import pathlib
 
 # Initial Directory
 # -------------------------
+#dir_name = "nir"
+#dir_name = "vv+swir"
+#dir_name = "vh+swir"
 dir_name = "vv"
+#dir_name = "vh-vv"
+#dir_name = "vh"
+#dir_name = "swir"
+#dir_name = "red"
 root_dir = pathlib.Path("/mnt/hdd2/mdsamiul/project/rice_crop_segmentation")
-
+gpu = "3"
+model_name = "unet"
+load_model_name = 'unet_ex_2024-11-10_e_4000_p_2048_s_1024_vv.hdf5'
 # Image In/Out Parameters
 # -------------------------
-# "channel_type" = "rgb"
 in_channels = 3
-num_classes = 3
+num_classes = 2
 height = 512 # only required for cfr and cfr-cb, otherwise patch_size = height
-width = 512  # only required for cfr and cfr-cb, otherwise patch_size = width
+width = 512 # only required for cfr and cfr-cb, otherwise patch_size = width
 
 # Training Parameters
 # -------------------------
-model_name = "planet"
+
 batch_size = 1
 epochs = 4000
 learning_rate = 3e-4
 val_plot_epoch = 15
 augment = True
 transfer_lr = False
-gpu = "0"
+#gpu = "1"
 
 # Class Balance Parameters
 # -------------------------
@@ -56,7 +64,7 @@ experiment = f"{str(date.today())}_e_{epochs}_p_{patch_size}_s_{stride}_{dir_nam
 
 # Evaluation Parameters
 # -------------------------
-load_model_name = 'planet-2_ex_2024-04-29_e_3000_p_2048_s_1024_nsr-1_ep_3000not.hdf5'
+#load_model_name = 'planet_ex_2024-10-15_e_4000_p_2048_s_1024_red.hdf5'
 load_model_dir = root_dir / "logs/model" / model_name
 evaluation = False
 video_path = None  # If None then by default root_dir/data/video_frame
@@ -65,20 +73,26 @@ prediction_test_dir = root_dir / "logs/prediction" / model_name / "test" / exper
 prediction_eval_dir = root_dir / "logs/prediction" / model_name / "eval" / experiment
 prediction_val_dir = root_dir / "logs/prediction" / model_name / "validation" / experiment
 
-# CSV Directory
+# Image Directory
 # -------------------------
 dataset_dir = root_dir / f"data/signal_based_data/{dir_name}"
+image_path = dataset_dir / "input"
+mask_path = dataset_dir / "groundtruth"
+
+# CSV Directory
+# -------------------------
 train_dir = dataset_dir / "data/csv/train.csv"
 valid_dir = dataset_dir / "data/csv/valid.csv"
 test_dir = dataset_dir / "data/csv/test.csv"
 eval_dir = dataset_dir / "data/csv/eval.csv"
 
-# Patchify Directory
+# Json Directory
 # -------------------------
-p_train_dir = dataset_dir / f"data/json/train_patch_phr_cb_{patch_size}_{stride}.json"
-p_valid_dir = dataset_dir / f"data/json/valid_patch_phr_cb_{patch_size}_{stride}.json"
-p_test_dir = dataset_dir / f"data/json/test_patch_phr_cb_{patch_size}_{stride}.json"
-p_eval_dir = dataset_dir / f"data/json/eval_patch_phr_cb_{patch_size}_{stride}.json"
+json_dir = dataset_dir / "data/json/"
+p_train_dir = json_dir / f"train_phr_cb_p_{patch_size}_s_{stride}.json"
+p_valid_dir = json_dir / f"valid_phr_cb_p_{patch_size}_s_{stride}.json"
+p_test_dir = json_dir / f"test_phr_cb_p_{patch_size}_s_{stride}.json"
+p_eval_dir = json_dir / f"eval_phr_cb_p_{patch_size}_s_{stride}.json"
 
 # Log Directory
 # -------------------------
@@ -97,16 +111,16 @@ checkpoint_dir = root_dir / "logs/model" / model_name
 # Mean & Std
 # -------------------------
 mean_std = {
-    "nir": [0.5001, 0.2852],
-    "red": [0.3301, 0.2620],
+    "nir": [0.1495, 0.0825],
+    "red": [0.1836, 0.1195],
     "swir": [0.152, 0.0876],
-    "nsr-4": [0.0356, 0.0824],
-    "nsr-5": [0.0306, 0.0747],
+    "vh+swir": [0.0356, 0.0824],
+    # "nsr-5": [0.0306, 0.0747],
     "vh": [-11.6673, 5.1528],
     "vv": [-10.9157, 4.8009],
     "vh-vv": [-10.066135, 4.200516],
-    "sar-4": [0.75226486, 2.6914093],
-    "sar-5": [1.6018738, 2.857205]
+    "vv+swir": [0.75226486, 2.6914093],
+    # "sar-5": [1.6018738, 2.857205]
 }
 
 mean = mean_std.get(dir_name)[0] # mean value will be based on dir_name

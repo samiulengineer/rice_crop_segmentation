@@ -10,13 +10,12 @@ import rasterio
 from tensorflow import keras
 import earthpy.spatial as es
 import matplotlib.pyplot as plt
-from progressbar import ProgressBar
-import moviepy.video.io.ImageSequenceClip
 from rasterio.plot import show
 from config import *
 import config
-from dataset import read_img, transform_data
-
+from dataset import read_img, transform_data, pct_clip
+import moviepy
+import traceback
 # Callbacks and Prediction during Training
 # ----------------------------------------------------------------------------------------------
 class SelectCallbacks(keras.callbacks.Callback):
@@ -33,7 +32,6 @@ class SelectCallbacks(keras.callbacks.Callback):
         super(keras.callbacks.Callback, self).__init__()
 
         self.val_dataset = val_dataset
-        self.model = model
         self.config = config
         self.callbacks = []
 
@@ -62,7 +60,7 @@ class SelectCallbacks(keras.callbacks.Callback):
             save predict mask
         """
         if (epoch % self.config.val_plot_epoch == 0):  # every after certain epochs the model will predict mask
-            val_show_predictions(self.val_dataset, self.model)  # save image/images with their mask, pred_mask and accuracy
+            val_show_predictions(self.val_dataset, self.model, epoch)  # save image/images with their mask, pred_mask and accuracy
             
         print("...............................................................")
         print(self.config.checkpoint_name)
@@ -160,17 +158,36 @@ def display(display_list, idx, directory, score, exp, evaluation, src):
             ax.set_yticks([])  # Remove y-axis ticks
             ax.set_xlabel('')  # Remove x-axis label
             ax.set_ylabel('')  # Remove y-axis label
+            
+        elif title[i] == "Mask difference":
+            
+            plt.title(title[i])
+            #prediction_key = [key for key in display_list if "Prediction (miou" in key][0]            
+            prediction = display_list["Mask difference"]
+            mask = display_list["Mask"]
+            mask = (mask * 255).astype(np.uint8) if mask.max() <= 1 else mask
+            prediction = (prediction * 255).astype(np.uint8) if prediction.max() <= 1 else prediction
+            differences = mask!=prediction
+            overlay = np.stack((mask,mask,mask),axis=-1)
+            overlay[differences]=[255,0,0]
+            #plt.imshow(mask,'jet', interpolation='none',alpha=0.8)
+            plt.imshow(overlay,'jet', interpolation='none')
+            
+            plt.axis('off')
         else:
             plt.title(title[i])
             plt.imshow((display_list[title[i]]), cmap="gray")
             plt.axis('off')
+    
+    # modify experiment name to add current epoch number 
+    
     
     # create file name to save
     if evaluation:
         prediction_name = "{}_id_{}.png".format(exp, idx)
     else:
         prediction_name = "{}_id_{}_miou_{:.4f}.png".format(exp, idx, score) 
-    
+    print(directory / prediction_name)
     plt.savefig((directory / prediction_name),
                 bbox_inches='tight',
                 dpi=800)
@@ -178,28 +195,7 @@ def display(display_list, idx, directory, score, exp, evaluation, src):
     plt.cla()
     plt.close()
     
-# this function is only required when we need prediction over mask during evaluation
-def display_label(img, img_path, directory):
-    """
-    Summary:
-        save only predicted labels
-    Arguments:
-        img (np.array): predicted label
-        img_path (str) : source image path
-        directory (str): saving directory
-    Return:
-        save images figure into directory
-    """
-    
-    img_path_split = os.path.split(img_path)
-    if 'umm_' in img_path_split[1]:
-        img_name = img_path_split[1][:4] + 'road_' + img_path_split[1][4:]
-    elif 'um_' in img_path_split[1]:
-        img_name = img_path_split[1][:3] + 'lane_' + img_path_split[1][3:]
-    else:
-        img_name = img_path_split[1][:3] + 'road_' + img_path_split[1][3:]
-    
-    plt.imsave(directory / img_name, img)
+
     
 
 # Plot Test Data Prediction
@@ -262,21 +258,14 @@ def test_eval_show_predictions(dataset, model):
         score = m.result().numpy()
         total_score += score
 
-        display({"VV": feature_img[:, :, 0], # change in the key "image" will have to change in the display
-                "VH": feature_img[:, :, 1],
-                "DEM": feature_img[:, :, 2],
-                "Mask": np.argmax([mask], axis=3)[0],
-                "Prediction (miou_{:.4f})".format(score): pred_full_label},
-                i, save_dir, score, experiment, evaluation,src=src)
+        display({"Mask": np.argmax([mask], axis=3)[0],
+        "Mask difference": pred_full_label,
+        f"Prediction_{score:.4f}":pred_full_label
+            }, i, save_dir, score, experiment, evaluation,src=src)
 
 # Plot Val Data Prediction
 # ----------------------------------------------------------------------------------------------
-def pct_clip(array, pct=[2.5, 97.5]):
-    array_min, array_max = np.nanpercentile(array, pct[0]), np.nanpercentile(array, pct[1])
-    clip = (array - array_min) / (array_max - array_min)
-    clip[clip > 1] = 1
-    clip[clip < 0] = 0
-    return clip
+
 
 def false_colour_read(path):
     with rasterio.open(path) as src:
@@ -287,7 +276,7 @@ def false_colour_read(path):
             img[i, :, :] = pct_clip(src.read(i+1))
     return img, src
 
-def val_show_predictions(dataset, model):
+def val_show_predictions(dataset, model,epoch):
     """
     Summary:
         predict patch images and merge together during training
@@ -303,7 +292,7 @@ def val_show_predictions(dataset, model):
     df = pd.DataFrame.from_dict(patch_valid_dir)  # read as pandas dataframe
     val_dir = pd.read_csv(valid_dir)  # get the csv file
 
-    if index == -1:
+    if index == "random":
         i = random.randint(0, (len(val_dir)-1))
     else:
         i = index
@@ -314,7 +303,7 @@ def val_show_predictions(dataset, model):
     
     # checking mask from both csv and json file and taking indices from the json file
     idx = df[df["masks"] == val_dir["masks"][i]].index
-
+    
     # construct a single full image from prediction patch images
     pred_full_label = np.zeros((mask_size[0], mask_size[1]), dtype=int)
     for j in idx:
@@ -332,11 +321,13 @@ def val_show_predictions(dataset, model):
     m = keras.metrics.MeanIoU(num_classes=num_classes)
     m.update_state(np.argmax([mask], axis=3), [pred_full_label])
     score = m.result().numpy()
-
+    exp = "_".join(str(epoch+1) if i == 2 else x for i, x in enumerate(experiment.split("_")))
+    print("Experiment", experiment)
+    print("EXP", exp)
     display({"combined_channels": feature_img,      # change in the key "image" will have to change in the display
         "Mask": np.argmax([mask], axis=3)[0],
-        "Prediction (miou_{:.4f})".format(score): pred_full_label 
-        }, i, prediction_val_dir, score, experiment, evaluation, src=src)
+        "Mask over prediction":pred_full_label
+        }, i, prediction_val_dir, score, exp, evaluation, src=src)
 
 # Logger Path
 # ----------------------------------------------------------------------------------------------
