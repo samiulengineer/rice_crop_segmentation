@@ -286,4 +286,4 @@ test.py
 ---
 
 
-# [FAQ](FAQ.md)
+# [FAQ](faq.md)
