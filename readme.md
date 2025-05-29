@@ -286,4 +286,4 @@ test.py
 ---
 
 
-# [FAQ](faq.md)
+# For more Info, click [FAQ](faq.md)
