@@ -8,7 +8,7 @@ During the training process, validation occurs at configurable intervals, determ
 The generated validation plots are automatically saved in the following directory:
 
 ```
-root/logs/prediction/<model_name>/validation/<experiment_name>.jpg
+root/logs/prediction/<model_name>/validation/<experiment_name>.png
 ```
 
 Plotting can be further customized to allow **selective plotting** or **random plotting**. The process to achieve this is detailed in **Question 16**.
@@ -29,7 +29,7 @@ To visualize predictions during the testing phase, follow these steps:
 
 3. **Access the Plots**: The resulting prediction plots will be saved in the following directory:
     ```
-    root_dir/logs/prediction/model_name/test/experiment
+    root_dir/logs/prediction/model_name/test/experiment/<experiment_name>.png
     ```
    - Replace `root_dir` with the root directory of your project.
    - Replace `model_name` with the name of your model.
@@ -49,7 +49,7 @@ To visualize predictions during the evaluation phase, follow these steps:
 3. **View Resulting Plots**: The resulting prediction plots will be automatically saved in the following folder structure:
 
 ```
-root_dir/logs/prediction/model_name/eval/experiment
+root_dir/logs/prediction/model_name/eval/experiment/<experiment_name>.png
 ```
 
 - Replace `root_dir` with the root directory of your project.
@@ -91,7 +91,7 @@ index = "random"  # For random plotting
 
 The plots can be found in the directory:
 ```
-root/logs/prediction/model_name/validation/experiment_name.jpg
+root/logs/prediction/model_name/validation/experiment_name.png
 ```
 
 ## Dataset Preprocessing
@@ -105,8 +105,8 @@ The JSON file contains details about patches such as their coordinates and corre
 
 ```json
 {
-  "feature_ids": ["image1.jpg", "image1.jpg"],
-  "masks": ["image1_mask.jpg", "image1_mask.jpg"],
+  "feature_ids": ["image1.tif", "image1.tif"],
+  "masks": ["image1_mask.tif", "image1_mask.tif"],
   "patch_idx": [[0, 0, 512, 512], [512, 0, 1024, 512]]
 }
 ```
@@ -281,7 +281,7 @@ The number of patches created during preprocessing is determined using the formu
 
 <!-- <img src="https://latex.codecogs.com/svg.image?$$\text{number\_of\_patches}=\left\lceil\frac{\text{height}-\text{patch\_size}}{\text{stride}}&plus;1\right\rceil\times\left\lceil\frac{\text{width}-\text{patch\_size}}{\text{stride}}&plus;1\right\rceil$$" title="$$\text{number\_of\_patches}=\left\lceil\frac{\text{height}-\text{patch\_size}}{\text{stride}}+1\right\rceil\times\left\lceil\frac{\text{width}-\text{patch\_size}}{\text{stride}}+1\right\rceil$$" /> -->
 
-<img src="https://latex.codecogs.com/svg.image?\inline&space;\bg{black}\;\text{Number&space;of&space;Patches}=\frac{(\text{height}&plus;\text{stride}-\text{patch&space;size})\cdot(\text{width}&plus;\text{stride}-\text{patch&space;size})}{\text{stride}^2}\;" title="\;\text{Number of Patches}=\frac{(\text{height}+\text{stride}-\text{patch size})\cdot(\text{width}+\text{stride}-\text{patch size})}{\text{stride}^2}\;" />
+<img src="https://latex.codecogs.com/svg.image?\text{Number&space;of&space;patches}=\left(\left\lceil\frac{\text{height}-\text{patch&space;size}}{\text{stride}}\right\rceil&plus;1\right)\times\left(\left\lceil\frac{\text{width}-\text{patch&space;size}}{\text{stride}}\right\rceil&plus;1\right)" />
 
 These patches are further processed and evaluated against the class balance threshold if `patch_class_balance` is set to `True` in the `config.py` file. All generated patches and their corresponding metadata are saved in the JSON file.
 
