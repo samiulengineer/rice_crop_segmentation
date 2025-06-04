@@ -20,17 +20,21 @@ This setup ensures systematic tracking and flexible visualization of model perfo
 To visualize predictions during the testing phase, follow these steps:
 
 1. **Configure the Settings**: In the `config.py` file, ensure the following setting:
+
     ```python
     evaluation = False
     ```
+
    This ensures predictions are generated on the test dataset without performing evaluation.
 
 2. **Execute the Command**: Run the testing script.
 
 3. **Access the Plots**: The resulting prediction plots will be saved in the following directory:
+
     ```
     root_dir/logs/prediction/model_name/test/experiment/<experiment_name>.png
     ```
+
    - Replace `root_dir` with the root directory of your project.
    - Replace `model_name` with the name of your model.
    - Replace `experiment` with the specific testing experiment name.
@@ -63,6 +67,7 @@ This allows you to visually assess the model's performance during evaluation.
 Visualizing the dataset before training is a common practice in deep learning. To visualize the dataset, use the `display_all` function in the `visualization.ipynb` file.
 
 #### **Example:**
+
 ```python
 display_all(
     data=train_df,
@@ -74,6 +79,7 @@ display_all(
 *For test dataset, pass `data=test_df` with `name="test"`, and similarly for validation.*
 
 #### **Set the Visualization Directory:**
+
 ```python
 visualization_dir = pathlib.Path("path_where_you_want_to_store_plots")
 ```
@@ -83,14 +89,17 @@ This function generates and saves visualizations, enabling you to inspect your d
 ## 5. How can I randomly or selectively plot data samples during training?
 
 Plotting data samples during training helps verify preprocessing, augmentations, and dataset integrity. The behavior is controlled by the `index` variable in `config.py`:
+
 ```python
 index = "random"  # For random plotting
 ```
+
 - Set `index = 1` to plot the first validation sample consistently.
 - Set `index = "random"` to plot samples randomly during training.
 
 The plots can be found in the directory:
-```
+
+```python
 root/logs/prediction/model_name/validation/experiment_name.png
 ```
 
@@ -109,6 +118,7 @@ The JSON file contains details about patches such as their coordinates and corre
   "masks": ["image1_mask.tif", "image1_mask.tif"],
   "patch_idx": [[0, 0, 512, 512], [512, 0, 1024, 512]]
 }
+
 ```
 These files ensure proper data handling during training and preprocessing, avoiding errors due to inconsistencies.
 
@@ -131,15 +141,20 @@ Properly aligning image dimensions and patch size ensures the pipeline operates 
 To handle class imbalance, class weights can be adjusted during training to ensure the model gives appropriate importance to underrepresented classes. Here's how:
 
 #### **Binary Classification**
+
 - For imbalanced datasets (e.g., one class has significantly more samples), enable class weighting by setting `weights = True` in the `config.py` file.
 - Define appropriate values for `balance_weights`. For example:
+
   ```python
   balance_weights = [4, 6]  # Class 0 gets a weight of 4, Class 1 gets a weight of 6
   ```
+
   These weights should be proportional to the class distributions.
 
 #### **Multi-class Classification**
+
 - In cases where one class should be ignored (e.g., a boundary class), set its weight to `0`. For example:
+
   ```python
   balance_weights = [4, 6, 0]  # Class 2 (boundary) is ignored
   ```
@@ -147,56 +162,71 @@ To handle class imbalance, class weights can be adjusted during training to ensu
 This approach adjusts the loss function to account for class proportions, improving performance on underrepresented classes while ignoring irrelevant ones.
 
 #### **Calculating Class Weights**
+
 You can compute class weights using the `class_balance_check` function in the `visualization.ipynb` file:
+
 1. Run the function with your training dataset:
+
    ```python
    class_balance_check(patchify=False, data_dir=train_df)
    ```
+
 2. Example output:
-   ```
+
+   ```python
    class pixel: 1.0 = 27.747506680695906
    class pixel: 2.0 = 72.2524933193041
    ```
+
    Here, 27.75% of pixels belong to Class 1 and 72.25% to Class 2.
 
 3. Assign weights inversely proportional to these percentages. For instance:
    - Weight for Class 1: \( 72.25 / 10 ~ 7.2 \)
    - Weight for Class 2: \( 27.75 / 10 ~ 2.7 \)
+
    ```python
    balance_weights = [7.2, 2.7]
    ```
    
 Update the `config.py` file as follows:
+
 ```python
 weights = True
 balance_weights = [7.2, 2.7]
 ```
 
 This ensures the model emphasizes underrepresented classes during training, mitigating imbalance issues.
+
 ### 9. Why is it necessary to delete CSV and JSON files before starting a new training session on modified data?
 
 In this pipeline, if a CSV file already exists, the system will not generate a new one, and the same applies to JSON files. Therefore, if you make any changes to the `config.py` file that could affect the training data (e.g., data paths, preprocessing steps, or class distributions), it is necessary to manually delete the existing CSV and JSON files. This ensures that the changes are reflected in the newly generated training dataset.
 
 You can find the CSV and JSON files in the following directories:
 
-```
+```python
 root/data/csv
 ```
-```
+
+```python
 root/data/json
 ```
 
 Deleting these files before starting a new training session ensures that the training dataset is updated according to the latest configuration.
+
 ### **10. How can I extract the mean and standard deviation from the `visualization.py` file, and why are these metrics important?**
 
 Normalization using mean and standard deviation ensures consistent input distributions, which stabilizes training and accelerates convergence. To extract the mean and standard deviation of your dataset, use the `calculate_average` function in the `visualization.ipynb` file. Follow these steps:
 
 #### **Steps to Calculate Mean and Standard Deviation**
+
 1. Prepare the input feature paths:
+
    ```python
    features_path = train_df["feature_ids"].to_list()
    ```
+
 2. Compute the mean and standard deviation by running:
+
    ```python
    mean, std_dev = calculate_average(features_path)
    ```
@@ -218,27 +248,34 @@ mean_std = {
 mean = mean_std.get(dir_name)[0]  # Mean value based on `dir_name`
 std = mean_std.get(dir_name)[1]   # Standard deviation based on `dir_name`
 ```
+
 ### **11. How do I check the number of classes in the dataset?**
 
 To determine the number of classes in your dataset, use the `class_balance_check` function in the `visualization.ipynb` file. This function provides a breakdown of the unique classes along with their distribution.
 
 #### **Steps to Check the Number of Classes**
+
 1. Load the training dataset:
+
    ```python
    train_df = pd.read_csv(train_dir)
    ```
+
 2. Execute the `class_balance_check` function:
+
    ```python
    class_balance_check(patchify=False, data_dir=train_df)
    ```
 
 #### **Example Output**
+
 ```plaintext
 Class percentage:
 class pixel: 1.0 = 27.747506680695906
 class pixel: 2.0 = 72.2524933193041
 Unique value in the mask dict_keys([1.0, 2.0])
 ```
+
 In this example:
 - The dataset contains **2 unique classes** (1.0 and 2.0).
 - Update the `config.py` file accordingly:
